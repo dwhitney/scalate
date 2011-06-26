@@ -9,7 +9,7 @@ object BuildSettings{
   val jansiVersion = "1.4"
   val jerseyVersion = "1.5"
   val jettyVersion = "7.2.1.v20101111"
-  val jlineVersion = "0.9.95.20100209"
+  val jlineVersion = "0.9"
   val junitVersion = "4.5"
   val karafVersion = "2.1.0"
   val logbackVersion = "0.9.26"
@@ -25,15 +25,23 @@ object BuildSettings{
   val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.fusesource",
     scalaVersion := "2.9.0",
+    crossScalaVersions := Seq("2.9.0-1", "2.9.0", "2.8.1"),
     shellPrompt := { state: State => "%s> ".format(Project.extract(state).currentProject.id)}
   )
 }
 
 object Repositories{
+  val fusesource_nexus_staging = "Fusesource Release Repository" at "http://repo.fusesource.com/nexus/service/local/staging/deploy/maven2"
   val fusesource_m2 = "FuseSource Community Release Repository" at "http://repo.fusesource.com/maven2"
   val fusesource_m2_snapshot = "FuseSource Community Snapshot Repository" at "http://repo.fusesource.com/maven2-snapshot"
   val fusesource_nexus_m2_snapshot = "FuseSource Community Snapshot Repository" at "http://repo.fusesource.com/nexus/content/groups/public-snapshots"
+  val servicemix_m2 = "ServiceMix M2 Repository" at "http://svn.apache.org/repos/asf/servicemix/m2-repo"
   val java_net_m2 = "java.net Maven 2 Repo" at "http://download.java.net/maven/2"
+  val openqa_releases = "OpenQA Releases" at "http://archiva.openqa.org/repository/releases"
+  val glassfish_repo_archive = "Nexus repository collection for Glassfish" at "http://maven.glassfish.org/content/groups/glassfish"
+  val snapshots_scala_tools_org = "Scala-Tools Maven2 Snapshot Repository" at "http://scala-tools.org/repo-snapshots"
+  val apache_snapshots = "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots"
+  val fluido_skin = "Fluido" at "http://fluido-skin.googlecode.com/svn/repo/"
   val zt_repo = "Zero turnaround repo" at "http://repos.zeroturnaround.com/maven2"
 }
 
@@ -41,45 +49,56 @@ object Scalate extends Build{
   import BuildSettings._
   import Repositories._
   
-  /*lazy val scalate_util = project("scalate-util", "scalate-util", new ScalateUtil(_))
-  lazy val scalate_core = project("scalate-core", "scalate-core", new ScalateCore(_), scalate_util)
-  lazy val scalate_test = project("scalate-test", "scalate-test", new ScalateTest(_), scalate_core)
-  lazy val scalate_page = project("scalate-page", "scalate-page", new ScalatePage(_), scalate_core, scalate_test)
-  lazy val scalate_wikitext = project("scalate-wikitext", "scalate-wikitext", new ScalateWikiText(_), scalate_core, scalate_test)
-  lazy val scalate_camel = project("scalate-camel", "scalate-camel", new ScalateCamel(_), scalate_core, scalate_test)
-  lazy val scalate_jsp_converter = project("scalate-jsp-converter", "scalate-jsp-converter", new ScalateJspConverter(_), scalate_core)
-  lazy val scalate_war = project("scalate-war", "scalate-war", new ScalateWar(_), scalate_core, scalate_test)
-  lazy val scalate_sample = project("scalate-sample", "scalate-sample", new ScalateSample(_), scalate_core, scalate_test, scalate_war)
-  lazy val scalate_bookstore = project("scalate-bookstore", "scalate-bookstore", new ScalateBookstore(_), scalate_core, scalate_test, scalate_war)*/
+  val allRepos = Seq(fusesource_nexus_staging, fusesource_m2, fusesource_m2_snapshot, fusesource_nexus_m2_snapshot,
+    servicemix_m2, java_net_m2, openqa_releases, glassfish_repo_archive, snapshots_scala_tools_org, apache_snapshots,
+    fluido_skin, zt_repo)
   
   lazy val scalate_util = Project("scalate-util", file("scalate-util"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "junit" % "junit" % junitVersion % "test"
-    )))
+      "junit" % "junit" % junitVersion % "test"),
+      
+      libraryDependencies <<= (scalaVersion, libraryDependencies) { (sv, deps) =>
+      	if(sv == "2.8.1") deps :+ "org.scalatest" %% "scalatest" % "1.5" % "test"
+      	else if(sv == "2.9.0-1") deps :+ "org.scalatest" % "scalatest_2.9.0" % "1.4.1" % "test"
+      	else deps :+ "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+      }
+      
+    ))
     
   lazy val scalate_core = Project("scalate-core", file("scalate-core"),
   settings = buildSettings ++ Seq( libraryDependencies := Seq(
     "javax.servlet" % "servlet-api" % servletApiVersion % "compile",
     "com.sun.jersey" % "jersey-server" % jerseyVersion % "compile",
-    "org.scala-lang" % "scala-compiler" % "2.9.0" % "compile",
     "org.fusesource.scalamd" % "scalamd" % scalamdVersion % "compile",
     "ch.qos.logback" % "logback-classic" % logbackVersion % "runtime",
     "org.osgi" % "org.osgi.core" % osgiVersion % "compile",
-    "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-    "junit" % "junit" % junitVersion % "test"
-  ))) dependsOn(scalate_util)
+    "junit" % "junit" % junitVersion % "test"),
+    
+    libraryDependencies <<= (scalaVersion, libraryDependencies) { (sv, deps) =>
+    	if(sv == "2.8.1") deps :+ "org.scala-lang" % "scala-compiler" % "2.8.1" % "compile"
+    	else if(sv == "2.9.0") deps :+ "org.scala-lang" % "scala-compiler" % "2.9.0" % "compile"
+    	else if(sv == "2.9.0-1") deps :+ "org.scala-lang" % "scala-compiler" % "2.9.0-1" % "compile"
+    	else Seq[ModuleID]()
+    },
+    
+    resolvers := Seq(java_net_m2)
+  )) dependsOn(scalate_util)
   
   lazy val scalate_test = Project("scalate-test", file("scalate-test"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
-      "org.scalatest" %% "scalatest" % scalaTestVersion,
       "junit" % "junit" % junitVersion,
       "org.seleniumhq.selenium" % "selenium-htmlunit-driver" % "2.0a5",
       "org.eclipse.jetty" % "jetty-server" % jettyVersion,
       "org.eclipse.jetty" % "jetty-webapp" % jettyVersion,
       "org.eclipse.jetty" % "jetty-util" % jettyVersion
-    ))) dependsOn(scalate_core)
+    ),
+    libraryDependencies <<= (scalaVersion, libraryDependencies) { (sv, deps) =>
+    	if(sv == "2.8.1") deps :+ "org.scalatest" %% "scalatest" % "1.5"
+    	else if(sv == "2.9.0-1") deps :+ "org.scalatest" % "scalatest_2.9.0" % "1.4.1"
+    	else deps :+ "org.scalatest" %% "scalatest" % scalaTestVersion
+    }
+    )) dependsOn(scalate_core)
     
   lazy val scalate_wikitext = Project("scalate-wikitext", file("scalate-wikitext"),
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
@@ -90,13 +109,17 @@ object Scalate extends Build{
   lazy val scalate_page = Project("scalate-page", file("scalate-page"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
       "org.yaml" % "snakeyaml" % "1.7"
-    ))) dependsOn(scalate_wikitext)
+    ),
+      resolvers := Seq(fusesource_nexus_m2_snapshot)
+    )) dependsOn(scalate_wikitext)
     
   lazy val scalate_camel = Project("scalate-camel", file("scalate-camel"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
       "org.apache.camel" % "camel-spring" % camelVersion,
       "org.apache.camel" % "camel-scala" % camelVersion
-    ))) dependsOn(scalate_wikitext)
+    ),
+      resolvers := Seq(fusesource_m2)
+    )) dependsOn(scalate_wikitext)
 
   lazy val scalate_web = Project("scalate-web", file("scalate-web"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
@@ -106,11 +129,11 @@ object Scalate extends Build{
   lazy val scalate_jsp_converter = Project("scalate-jsp-converter", file("scalate-jsp-converter"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
       "org.apache.karaf.shell" % "org.apache.karaf.shell.console" % karafVersion
-    ))) dependsOn(scalate_web)
+    ),
+      resolvers := allRepos
+    )) dependsOn(scalate_web)
     
-  lazy val scalate_war = Project("scalate-war", file("scalate-war"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_web)
+  lazy val scalate_war = Project("scalate-war", file("scalate-war"), settings = buildSettings) dependsOn(scalate_test)
     
   lazy val scalate_guice = Project("scalate-guice", file("scalate-guice"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
@@ -144,9 +167,7 @@ object Scalate extends Build{
       "org.codehaus.swizzle" % "swizzle-confluence" % "1.4"
     ))) dependsOn(scalate_test)
     
-  lazy val scalate_website = Project("scalate-website", file("scalate-website"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_test)
+  lazy val scalate_website = Project("scalate-website", file("scalate-website"), settings = buildSettings) dependsOn(scalate_test)
 
   lazy val scalate_markdownj = Project("scalate-markdownj", file("scalate-markdownj"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
@@ -158,27 +179,20 @@ object Scalate extends Build{
       "org.markdownj" % "markdownj" % markdownVersion
     ))) dependsOn(scalate_war, scalate_guice)
     
-  lazy val scalate_example = Project("scalate-example", file("samples/scalate-example"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_war)
+  lazy val scalate_example = Project("scalate-example", file("samples/scalate-example"), settings = buildSettings) dependsOn(scalate_war)
     
-  lazy val scalate_sample = Project("scalate-sample", file("samples/scalate-sample"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_war, scalate_markdownj)
+  lazy val scalate_sample = Project("scalate-sample", file("samples/scalate-sample"), settings = buildSettings) dependsOn(scalate_war, scalate_markdownj)
     
-  lazy val scalate_sample_precompile = Project("scalate-sample-precompile", file("samples/scalate-sample-precompile"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_war)
+  lazy val scalate_sample_precompile = Project("scalate-sample-precompile", file("samples/scalate-sample-precompile"), settings = buildSettings) dependsOn(scalate_war)
 
-  lazy val scalate_sample_scuery = Project("scalate-sample-scuery", file("samples/scalate-sample-scuery"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_war, scalate_guice)
+  lazy val scalate_sample_scuery = Project("scalate-sample-scuery", file("samples/scalate-sample-scuery"), settings = buildSettings) dependsOn(scalate_war, scalate_guice)
   
-  lazy val scalate_sample_sitegen = Project("scalate-sample-sitegen", file("samples/scalate-sample-sitegen"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_war)
+  lazy val scalate_sample_sitegen = Project("scalate-sample-sitegen", file("samples/scalate-sample-sitegen"), settings = buildSettings) dependsOn(scalate_war)
         
-  lazy val scalate_sample_spring_mvc = Project("scalate-sample-spring-mvc", file("samples/scalate-sample-spring-mvc"), 
-    settings = buildSettings ++ Seq( libraryDependencies := Seq(
-    ))) dependsOn(scalate_war, scalate_spring_mvc)
+  lazy val scalate_sample_spring_mvc = Project("scalate-sample-spring-mvc", file("samples/scalate-sample-spring-mvc"), settings = buildSettings) dependsOn(scalate_war, scalate_spring_mvc)
+  
+  lazy val scalate_distro = Project("scalate-distro", file("scalate-distro"), settings = buildSettings) aggregate(scalate_util, scalate_core, scalate_test,
+      scalate_wikitext, scalate_page, scalate_camel, scalate_web, scalate_jsp_converter, scalate_war, scalate_jrebel, scalate_markdownj,
+      scalate_jruby, scalate_tool, scalate_website, scalate_bookstore, scalate_guice, scalate_spring_mvc, scalate_example,
+      scalate_sample, scalate_sample_precompile, scalate_sample_scuery, scalate_sample_sitegen, scalate_sample_spring_mvc)
 }
