@@ -82,6 +82,12 @@ object Scalate extends Build{
     	else Seq[ModuleID]()
     },
     
+    libraryDependencies <<= (scalaVersion, libraryDependencies) { (sv, deps) =>
+    	if(sv == "2.8.1") deps :+ "org.scalatest" %% "scalatest" % "1.5" % "test"
+    	else if(sv == "2.9.0-1") deps :+ "org.scalatest" % "scalatest_2.9.0" % "1.4.1" % "test"
+    	else deps :+ "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+    },
+    
     resolvers := Seq(java_net_m2)
   )) dependsOn(scalate_util)
   
