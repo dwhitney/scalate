@@ -136,11 +136,13 @@ object Scalate extends Build{
       "org.jruby" % "jruby-complete" % "1.5.6"
     ))) dependsOn(scalate_test)
     
-  /*lazy val scalate_tool = Project("scalate-tool", file("scalate-tool"), 
+  lazy val scalate_tool = Project("scalate-tool", file("scalate-tool"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
       "xmlrpc" % "xmlrpc-client" % "3.0" from "http://repo1.maven.org/maven2/xmlrpc/xmlrpc-client/3.0/xmlrpc-client-3.0.jar",
+      "xmlrpc" % "xmlrpc-common" % "3.0" from "http://repo1.maven.org/maven2/xmlrpc/xmlrpc-common/3.0/xmlrpc-common-3.0.jar",
+      "org.apache.karaf.shell" % "org.apache.karaf.shell.console" % karafVersion,
       "org.codehaus.swizzle" % "swizzle-confluence" % "1.4"
-    ))) dependsOn(scalate_test)*/
+    ))) dependsOn(scalate_test)
     
   lazy val scalate_website = Project("scalate-website", file("scalate-website"), 
     settings = buildSettings ++ Seq( libraryDependencies := Seq(
